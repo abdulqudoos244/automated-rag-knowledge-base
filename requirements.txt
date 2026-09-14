@@ -1,0 +1,24 @@
+# Web scraping
+requests
+beautifulsoup4
+
+# RAG / vector search
+langchain-core
+langchain-community
+langchain-huggingface
+langchain-ollama
+sentence-transformers
+faiss-cpu
+
+# LLM (local inference, used by rag.py-style experiments if reintroduced)
+transformers
+torch
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+
+# Testing
+pytest
+

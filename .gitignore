@@ -1,0 +1,29 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Pytest
+.pytest_cache/
+
+# Environment variables / secrets
+.env
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# NOTE: data/ (including data/faiss_index/) is intentionally NOT
+# ignored. The scheduled GitHub Actions workflow
+# (.github/workflows/update-knowledge-base.yml) runs the full
+# pipeline — including rebuilding the FAISS index — and commits
+# everything back automatically, so no manual step is needed after
+# an automated refresh.

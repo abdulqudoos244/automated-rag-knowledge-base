@@ -1,0 +1,64 @@
+name: Update Knowledge Base
+
+# This is what makes the project genuinely "automated" — instead of a
+# human running crawler.py -> parser.py -> builder.py -> chunker.py ->
+# vector_store.py by hand, this workflow runs the whole pipeline on a
+# schedule and commits the refreshed data back to the repo by itself.
+
+on:
+  schedule:
+    # Runs every Monday at 03:00 UTC. Kept weekly (not daily/hourly) to
+    # be a good citizen towards the source website and avoid excessive
+    # scraping load.
+    - cron: "0 3 * * 1"
+
+  # Lets you trigger a refresh manually from the Actions tab, e.g. to
+  # demo the automation without waiting for the schedule.
+  workflow_dispatch:
+
+concurrency:
+  group: update-knowledge-base
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # The first run crawls and parses every product from scratch, which
+    # can take a while for a large catalog. parser.py skips products
+    # already saved in data/products.json, so subsequent weekly runs
+    # only fetch genuinely NEW products and finish much faster.
+    timeout-minutes: 180
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run the full pipeline (crawl -> parse -> build -> chunk -> embed)
+        run: python App/scraper/pipeline.py
+
+      - name: Commit and push updated knowledge base
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/products.json data/knowledge_base.json data/chunks.json data/product_urls.json data/faiss_index
+
+          if git diff --cached --quiet; then
+            echo "No changes to the knowledge base this run."
+          else
+            git commit -m "Automated weekly knowledge base refresh"
+            git push
+          fi
