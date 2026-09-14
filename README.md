@@ -9,9 +9,9 @@ Built as an end-to-end pipeline: **scrape → parse → chunk → embed → retr
 - 🕷️ **Web crawler** — discovers and collects product URLs from a live e-commerce site
 - 📄 **Structured parser** — extracts product name, price, price history, description, and specifications from raw HTML
 - 🧩 **Hybrid retrieval** — fast rule-based keyword/attribute matching (brand, model, capacity, etc.) with a FAISS semantic-search fallback for open-ended queries
-- 🤖 **Answer generation** — deterministic regex-based answers for structured questions (price, warranty, specs) and an LLM (via Ollama) for open-ended ones
+- 🤖 **Answer generation** — deterministic answers (no LLM, zero hallucination risk) for structured questions, product comparisons, and any confidently-identified product; a local LLM (via Ollama) is used only for genuinely open-ended, fuzzy queries where no exact product match exists
 - 🚀 **FastAPI service** — a simple `/ask` endpoint for question answering
-- ✅ **83 automated tests** (pytest) covering retrieval logic, answer generation, chunking, document building, and HTML parsing
+- ✅ **114 automated tests** (pytest) covering retrieval logic, answer generation, chunking, document building, and HTML parsing
 
 ## Architecture
 
@@ -37,7 +37,7 @@ retriever.py → given a question, finds the most relevant product(s)
 generator.py → formats an answer (regex extraction for structured questions,
     │           LLM for open-ended ones)
     ▼
-main.py      → FastAPI app exposing POST /ask
+main.py      → FastAPI app exposing POST /ask (at App/scraper/api/main.py)
 ```
 
 ## Tech Stack
@@ -46,7 +46,7 @@ main.py      → FastAPI app exposing POST /ask
 - **BeautifulSoup4** — HTML parsing
 - **LangChain + FAISS** — vector storage and semantic search
 - **sentence-transformers** (`all-MiniLM-L6-v2`) — embeddings
-- **Ollama** (`tinyllama`) — local LLM for open-ended answers
+- **Ollama** (`qwen2.5:1.5b-instruct`) — local LLM for open-ended answers
 - **FastAPI** — API layer
 - **pytest** — testing
 
@@ -58,6 +58,9 @@ automated-rag-knowledge-base/
 │   └── scraper/
 │       ├── crawler.py
 │       ├── parser.py
+│       ├── pipeline.py
+│       ├── api/
+│       │   └── main.py
 │       └── knowledge_base/
 │           ├── builder.py
 │           ├── chunker.py
@@ -70,7 +73,11 @@ automated-rag-knowledge-base/
 │   ├── test_parser.py
 │   ├── test_retriever.py
 │   └── test_generator.py
-├── main.py
+├── .github/
+│   └── workflows/
+│       ├── tests.yml
+│       └── update-knowledge-base.yml
+├── streamlit_app.py
 ├── requirements.txt
 └── README.md
 ```
@@ -80,7 +87,7 @@ automated-rag-knowledge-base/
 1. **Clone the repo and create a virtual environment**
 
    ```bash
-   git clone https://github.com/<your-username>/automated-rag-knowledge-base.git
+   git clone https://github.com/abdulqudoos244/automated-rag-knowledge-base.git
    cd automated-rag-knowledge-base
    python -m venv venv
    venv\Scripts\activate      # Windows
@@ -96,7 +103,7 @@ automated-rag-knowledge-base/
 3. **Install and run Ollama** (for open-ended question answering)
 
    ```bash
-   ollama pull tinyllama
+   ollama pull qwen2.5:1.5b-instruct
    ```
 
 ## Automation
@@ -131,7 +138,7 @@ python App/scraper/knowledge_base/generator.py
 ### 3. Or run the API
 
 ```bash
-uvicorn main:app --reload
+uvicorn App.scraper.api.main:app --reload
 ```
 
 Then send a request:
@@ -148,13 +155,13 @@ curl -X POST http://localhost:8000/ask \
 pytest tests/ -v
 ```
 
-All 83 tests run against mocked data — no live network calls, no FAISS index, and no LLM required. They're safe to run anytime.
+All 114 tests run against mocked data — no live network calls, no FAISS index, and no LLM required. They're safe to run anytime.
 
 ## Known Limitations
 
 - The retriever prioritizes rule-based keyword matching over semantic search; FAISS is only used as a fallback when no keyword match is found.
 - The crawler and parser are tailored to one site's HTML structure (WooCommerce-based) and would need selector updates for other sites.
-- `tinyllama`/`qwen2.5:1.5b-instruct` are small local models chosen for free inference — answer quality for open-ended questions is limited compared to larger models.
+- `qwen2.5:1.5b-instruct` is a small local model chosen for free inference — answer quality for genuinely open-ended questions (no exact product match) is limited compared to larger models.
 - **No price-range or superlative queries.** Phrases like "under 100000", "cheapest", or "most expensive" are not parsed as constraints — the system falls through to a generic keyword/LLM search instead, which can produce an irrelevant or unverified answer rather than an explicit "not supported" message. Supporting this would require adding numeric range parsing and price-based sorting to the retriever.
 - **No capacity range queries.** A query like "washing machines between 8 and 10 kg" only picks up the number immediately adjacent to the unit (10 kg), silently ignoring the "between X and Y" range and the lower bound.
 
@@ -169,6 +176,6 @@ All 83 tests run against mocked data — no live network calls, no FAISS index, 
 
 ## Author
 
-**[Your Name]**
-GitHub: [your-github-profile](https://github.com/your-username)
-LinkedIn: [your-linkedin-profile](https://linkedin.com/in/your-profile)
+**Abdul Qudoos**
+GitHub: [abdulqudoos244](https://github.com/abdulqudoos244)
+LinkedIn: [abdul-qudoos](https://www.linkedin.com/in/abdul-qudoos-b680b133a/)
